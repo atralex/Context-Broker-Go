@@ -1,0 +1,39 @@
+services:
+  mongo-db:
+    image: mongo:3.6
+    container_name: mongo-db
+    command: --nojournal
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    healthcheck:
+      test: |
+        host=`hostname --ip-address || echo '127.0.0.1'`; 
+        mongo --quiet $host/test --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)' && echo 0 || echo 1
+    volumes: 
+      - mongo-db-context:/data/db 
+    networks:
+      - context-broker-Go
+    restart: unless-stopped
+
+  context-broker-go:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: context-broker-go
+    ports:
+      - "1026:8080"
+    depends_on:
+      - mongo-db
+    networks:
+      - context-broker-Go
+    restart: unless-stopped
+
+volumes:
+  mongo-db-context:
+
+networks:
+  context-broker-Go:
+    external: true
